@@ -1,0 +1,66 @@
+---
+# tasks file for lb_aws
+- name: "Installing dependencies of AWS"
+  pip:
+    name: boto3
+
+- name: "Launching loadbalancer instance"
+  ec2_instance:
+    name: 'loadbalancer'
+    key_name: '{{ key_name }}'
+    instance_type: '{{ instance_type }}'
+    network:
+      assign_public_ip: true
+    image_id: '{{ image_id }}'
+    region: '{{ region }}'
+    tags:
+      master: 'loadbalancer'
+    aws_access_key: '{{ aws_access_key }}'
+    aws_secret_key: '{{ aws_secret_key }}'
+  register: loadbalancer
+
+- name: "Launching worker instance"
+  ec2_instance:
+    name: 'web1'
+    key_name: '{{ key_name }}'
+    instance_type: '{{ instance_type }}'
+    network:
+      assign_public_ip: true
+    image_id: '{{ image_id }}'
+    region: '{{ region }}'
+    tags:
+      master: 'web1'
+    aws_access_key: '{{ aws_access_key }}'
+    aws_secret_key: '{{ aws_secret_key }}'
+  register: web1_info
+
+- name: "Launching worker node2"
+  ec2_instance:
+    name: 'web2'
+    key_name: '{{ key_name }}'
+    instance_type: '{{ instance_type }}'
+    network:
+      assign_public_ip: true
+    image_id: '{{ image_id }}'
+    region: '{{ region }}'
+    tags:
+      master: 'web2'
+    aws_access_key: '{{ aws_access_key }}'
+    aws_secret_key: '{{ aws_secret_key }}'
+  register: web2_info
+
+- name: "updating inventory with IP address of nodes"
+  blockinfile:
+    path: /home/nikhil/ansible/inventory
+    block: |
+       [lb]
+       {{ loadbalancer.instances[0].public_ip_address }} 
+       
+       [webserver]
+       {{ web1_info.instances[0].public_ip_address }}  
+       {{ web2_info.instances[0].public_ip_address }}  
+
+- name: "Pause for instances to run properly"
+  pause:
+    seconds: 20
+
